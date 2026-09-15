@@ -1,0 +1,61 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Place google-services.json
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > ./google-services.json
+          echo "EXPO_PUBLIC_ANDROID_GOOGLE_SERVICES_FILE=./google-services.json" >> $GITHUB_ENV
+
+      - name: Prebuild Android project
+        run: pnpm exec expo prebuild --platform android --clean
+
+      - name: Ensure gradlew is executable
+        run: chmod +x ./android/gradlew
+
+      - name: Build Android Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatwoot-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
