@@ -43,19 +43,29 @@ jobs:
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > ./google-services.json
           echo "EXPO_PUBLIC_ANDROID_GOOGLE_SERVICES_FILE=./google-services.json" >> $GITHUB_ENV
 
+      - name: Optimize build settings
+        run: |
+          # Disable Proguard/R8 shrinking to avoid Java Heap Space exhaustion and speed up build
+          sed -i 's/enableProguardInReleaseBuilds: true/enableProguardInReleaseBuilds: false/g' app.config.ts || true
+
       - name: Prebuild Android project
         run: pnpm exec expo prebuild --platform android --clean
 
-      - name: Ensure gradlew is executable
-        run: chmod +x ./android/gradlew
-
-      - name: Configure signing and build Release APK
-        env:
-          SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      - name: Configure Gradle Memory and Signing
         run: |
           cd android
-          # Ensure release build type uses debug signing key if no custom keystore configured
+          chmod +x ./gradlew
+          # Increase Gradle JVM heap to 6GB
+          echo "org.gradle.jvmargs=-Xmx6144m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8" >> gradle.properties
+          # Ensure release build type uses debug signing key
           sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' app/build.gradle || true
+
+      - name: Build Release APK
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: "true"
+          GRADLE_OPTS: "-Xmx6144m"
+        run: |
+          cd android
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK Artifact
