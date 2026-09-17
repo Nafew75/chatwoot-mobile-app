@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 import { WebView } from 'react-native-webview';
 import snakecaseKeys from 'snakecase-keys';
 
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 
 import { Icon } from '@/components-next';
@@ -51,7 +52,7 @@ const DashboardScreen = () => {
   )}}));`;
 
   return (
-    <Animated.View style={tailwind.style('flex-1')}>
+    <SafeAreaView edges={['top']} style={tailwind.style('flex-1 bg-white')}>
       <Animated.View
         style={tailwind.style(
           'flex flex-row items-center justify-between px-4 border-b-[1px] border-b-blackA-A3 py-[12px] bg-white',
@@ -90,7 +91,7 @@ const DashboardScreen = () => {
           }
         }}
       />
-    </Animated.View>
+    </SafeAreaView>
   );
 };
 
